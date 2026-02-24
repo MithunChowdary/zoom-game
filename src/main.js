@@ -30,7 +30,7 @@ let state = {
 // Assets
 const assets = {
     player: new Image(),
-    pillar: new Image(),
+    onpillar: new Image(),
     sounds: {
         jump: new Audio('jump.mp3'),
         score: new Audio('score.mp3'),
@@ -45,7 +45,7 @@ assets.sounds.background.addEventListener('ended', function () {
     this.play();
 });
 assets.player.src = 'player.png';
-assets.pillar.src = 'pillar.png';
+assets.onpillar.src = 'onpillar.jpg';
 
 // DOM Elements
 const canvas = document.getElementById('game-canvas');
@@ -134,18 +134,25 @@ function draw() {
     ctx.fillStyle = grd; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     state.pipes.forEach(pipe => {
-        // Draw Obstacles (Image if available, else Gradient)
-        if (assets.pillar.complete && assets.pillar.naturalWidth !== 0) {
-            // Top Pipe
-            ctx.drawImage(assets.pillar, pipe.x, 0, CONFIG.pipeWidth, pipe.top);
-            // Bottom Pipe
-            ctx.drawImage(assets.pillar, pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height - (pipe.top + CONFIG.pipeGap));
-        } else {
-            const pGrd = ctx.createLinearGradient(pipe.x, 0, pipe.x + CONFIG.pipeWidth, 0);
-            pGrd.addColorStop(0, "#fff700"); pGrd.addColorStop(0.5, "#ffd900"); pGrd.addColorStop(1, "#fff700");
-            ctx.fillStyle = pGrd;
-            ctx.fillRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
-            ctx.fillRect(pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height);
+        // 1. Draw Yellow Gradient Base
+        const pGrd = ctx.createLinearGradient(pipe.x, 0, pipe.x + CONFIG.pipeWidth, 0);
+        pGrd.addColorStop(0, "#fff700"); pGrd.addColorStop(0.5, "#ffd900"); pGrd.addColorStop(1, "#fff700");
+        ctx.fillStyle = pGrd;
+
+        ctx.fillRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
+        ctx.fillRect(pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height - (pipe.top + CONFIG.pipeGap));
+
+        // 2. Overlay the "onpillar" image if loaded
+        if (assets.onpillar.complete && assets.onpillar.naturalWidth !== 0) {
+            const imgW = CONFIG.pipeWidth * 0.8; // slightly smaller than pillar
+            const imgH = (assets.onpillar.naturalHeight / assets.onpillar.naturalWidth) * imgW;
+            const xPos = pipe.x + (CONFIG.pipeWidth - imgW) / 2;
+
+            // Draw on top pipe (near the gap)
+            ctx.drawImage(assets.onpillar, xPos, pipe.top - imgH - 10, imgW, imgH);
+
+            // Draw on bottom pipe (near the gap)
+            ctx.drawImage(assets.onpillar, xPos, pipe.top + CONFIG.pipeGap + 10, imgW, imgH);
         }
     });
 
