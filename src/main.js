@@ -30,6 +30,7 @@ let state = {
 // Assets
 const assets = {
     player: new Image(),
+    pillar: new Image(),
     sounds: {
         jump: new Audio('jump.mp3'),
         score: new Audio('score.mp3'),
@@ -44,6 +45,7 @@ assets.sounds.background.addEventListener('ended', function () {
     this.play();
 });
 assets.player.src = 'player.png';
+assets.pillar.src = 'pillar.png';
 
 // DOM Elements
 const canvas = document.getElementById('game-canvas');
@@ -132,33 +134,19 @@ function draw() {
     ctx.fillStyle = grd; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     state.pipes.forEach(pipe => {
-        const pGrd = ctx.createLinearGradient(pipe.x, 0, pipe.x + CONFIG.pipeWidth, 0);
-        pGrd.addColorStop(0, "#fff700"); pGrd.addColorStop(0.5, "#ffd900"); pGrd.addColorStop(1, "#fff700");
-        ctx.fillStyle = pGrd;
-
-        // Draw Obstacles
-        ctx.fillRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
-        ctx.fillRect(pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height);
-
-        // Draw Vertical Text "TDP WATCHMAN"
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-        ctx.font = "13px 'Bebas Neue'";
-        ctx.textAlign = "center";
-
-        const text = "TDP WATCHMAN";
-        const xPos = pipe.x + CONFIG.pipeWidth / 2;
-
-        // Top Pipe Text
-        for (let i = 0; i < text.length; i++) {
-            ctx.fillText(text[i], xPos, pipe.top - 15 - (text.length - 1 - i) * 15);
+        // Draw Obstacles (Image if available, else Gradient)
+        if (assets.pillar.complete && assets.pillar.naturalWidth !== 0) {
+            // Top Pipe
+            ctx.drawImage(assets.pillar, pipe.x, 0, CONFIG.pipeWidth, pipe.top);
+            // Bottom Pipe
+            ctx.drawImage(assets.pillar, pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height - (pipe.top + CONFIG.pipeGap));
+        } else {
+            const pGrd = ctx.createLinearGradient(pipe.x, 0, pipe.x + CONFIG.pipeWidth, 0);
+            pGrd.addColorStop(0, "#fff700"); pGrd.addColorStop(0.5, "#ffd900"); pGrd.addColorStop(1, "#fff700");
+            ctx.fillStyle = pGrd;
+            ctx.fillRect(pipe.x, 0, CONFIG.pipeWidth, pipe.top);
+            ctx.fillRect(pipe.x, pipe.top + CONFIG.pipeGap, CONFIG.pipeWidth, canvas.height);
         }
-
-        // Bottom Pipe Text
-        for (let i = 0; i < text.length; i++) {
-            ctx.fillText(text[i], xPos, pipe.top + CONFIG.pipeGap + 25 + i * 15);
-        }
-        ctx.restore();
     });
 
     ctx.save();
