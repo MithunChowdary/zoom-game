@@ -35,7 +35,8 @@ const assets = {
         jump: new Audio('jump.mp3'),
         score: new Audio('score.mp3'),
         hit: new Audio('hit.mp3'),
-        background: new Audio('background.mp3')
+        background: new Audio('background.mp3'),
+        rakesh_master: new Audio('Rakesh_Master_.mp3')
     }
 };
 
@@ -183,6 +184,7 @@ function startGame() {
     scoreBoard.classList.remove('hidden');
 
     playSound(assets.sounds.background);
+    playSound(assets.sounds.rakesh_master);
 }
 
 function gameOver() {
@@ -196,6 +198,7 @@ function gameOver() {
     }
 
     playSound(assets.sounds.hit);
+    playSound(assets.sounds.rakesh_master);
     gameOverScreen.classList.remove('hidden');
     scoreBoard.classList.add('hidden');
     finalScoreEl.textContent = state.score;
