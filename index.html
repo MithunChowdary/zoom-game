@@ -38,18 +38,23 @@
             </div>
 
             <div id="game-over-screen" class="screen hidden">
-                <h2 class="game-over-title">Kapaadu thatha</h2>
-                <div class="final-stats">
-                    <div class="stat">
-                        <span class="label">SCORE</span>
-                        <span id="final-score">0</span>
+                <div class="game-over-content">
+                    <h2 class="game-over-title">Kapaadu thatha</h2>
+                    <div class="gif-container">
+                        <img src="afterout.gif" alt="Game Over" class="game-over-gif">
                     </div>
-                    <div class="stat">
-                        <span class="label">BEST</span>
-                        <span id="best-score">0</span>
+                    <div class="final-stats">
+                        <div class="stat">
+                            <span class="label">SCORE</span>
+                            <span id="final-score">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="label">BEST</span>
+                            <span id="best-score">0</span>
+                        </div>
                     </div>
+                    <button id="restart-btn">TRY AGAIN</button>
                 </div>
-                <button id="restart-btn">TRY AGAIN</button>
             </div>
         </div>
         <canvas id="game-canvas"></canvas>
