@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zoom - The Ultimate Flight</title>
+    <link rel="stylesheet" href="src/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="start-screen" class="screen">
+                <h1 class="game-title">ZOOM</h1>
+                <p class="subtitle">Press SPACE or TAP to FLY</p>
+                <div class="character-preview">
+                    <img src="player.png" alt="Player" id="preview-img" onerror="this.style.display='none'">
+                    <div id="placeholder-orb"
+                        style="width: 60px; height: 60px; background: white; border-radius: 50%; box-shadow: 0 0 20px #f6ff00;">
+                    </div>
+                </div>
+                <button id="start-btn">START GAME</button>
+            </div>
+
+            <div id="score-board" class="hidden">
+                <div class="score-container">
+                    <span class="label">SCORE</span>
+                    <span id="current-score">0</span>
+                </div>
+            </div>
+
+            <div id="game-over-screen" class="screen hidden">
+                <h2 class="game-over-title">Kapaadu thatha</h2>
+                <div class="final-stats">
+                    <div class="stat">
+                        <span class="label">SCORE</span>
+                        <span id="final-score">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">BEST</span>
+                        <span id="best-score">0</span>
+                    </div>
+                </div>
+                <button id="restart-btn">TRY AGAIN</button>
+            </div>
+        </div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+    <script type="module" src="src/main.js"></script>
+    <script>
+        const img = document.getElementById('preview-img');
+        const orb = document.getElementById('placeholder-orb');
+        if (img) {
+            img.onload = () => { if (orb) orb.style.display = 'none'; };
+        }
+    </script>
+</body>
+
+</html>
