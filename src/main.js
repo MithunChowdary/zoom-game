@@ -1,4 +1,4 @@
-﻿// Game Configuration
+// Game Configuration
 const CONFIG = {
     gravity: 0.25,
     jump: -6,
@@ -8,6 +8,124 @@ const CONFIG = {
     pipeWidth: 60,
     bottomBasePadding: 50
 };
+
+// Web Audio API Sound Engine (0 range requests, in-memory playback, zero 404s)
+class SoundEngine {
+    constructor() {
+        this.ctx = null;
+        this.buffers = {};
+        this.bgSource = null;
+        this.bgRequested = false;
+        this.urls = {
+            jump: 'jump.mp3',
+            hit: 'hit.mp3',
+            background: 'background.mp3',
+            rakesh_master: 'Rakesh_Master_.mp3'
+        };
+        this.init();
+    }
+
+    init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        this.ctx = new AudioCtx();
+        this.preload();
+    }
+
+    unlock() {
+        if (!this.ctx) this.init();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+    }
+
+    async preload() {
+        for (const [name, url] of Object.entries(this.urls)) {
+            try {
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                if (this.ctx) {
+                    this.buffers[name] = await this.ctx.decodeAudioData(arrayBuffer);
+                    // If background music was started while still loading, play it now
+                    if (name === 'background' && this.bgRequested && !this.bgSource) {
+                        this.startBackground();
+                    }
+                }
+            } catch (err) {
+                console.warn(`Failed to preload audio: ${name}`, err);
+            }
+        }
+    }
+
+    play(name) {
+        this.unlock();
+        if (!this.ctx || !this.buffers[name]) return;
+
+        try {
+            const source = this.ctx.createBufferSource();
+            source.buffer = this.buffers[name];
+            source.connect(this.ctx.destination);
+            source.start(0);
+            return source;
+        } catch (e) {
+            console.warn(`Error playing sound: ${name}`, e);
+        }
+    }
+
+    playScore() {
+        this.unlock();
+        if (!this.ctx) return;
+
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.setValueAtTime(1320, now + 0.08);
+
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.25);
+        } catch (e) {}
+    }
+
+    startBackground() {
+        this.bgRequested = true;
+        this.stopBackground();
+        this.unlock();
+        if (!this.ctx || !this.buffers.background) return;
+
+        try {
+            this.bgSource = this.ctx.createBufferSource();
+            this.bgSource.buffer = this.buffers.background;
+            this.bgSource.loop = true;
+            this.bgSource.connect(this.ctx.destination);
+            this.bgSource.start(0);
+        } catch (e) {
+            console.warn('Error starting background music', e);
+        }
+    }
+
+    stopBackground() {
+        this.bgRequested = false;
+        if (this.bgSource) {
+            try {
+                this.bgSource.stop();
+            } catch (e) {}
+            this.bgSource = null;
+        }
+    }
+}
+
+const sounds = new SoundEngine();
 
 // State
 let state = {
@@ -27,25 +145,13 @@ let state = {
     frame: 0
 };
 
-// Assets
+// Visual Assets
 const assets = {
     player: new Image(),
-    onpillar: new Image(),
-    sounds: {
-        jump: new Audio('jump.mp3'),
-        score: new Audio('score.mp3'),
-        hit: new Audio('hit.mp3'),
-        background: new Audio('background.mp3'),
-        rakesh_master: new Audio('Rakesh_Master_.mp3')
-    }
+    onpillar: new Image()
 };
 
-assets.sounds.background.loop = true;
-assets.sounds.background.addEventListener('ended', function () {
-    this.currentTime = 0;
-    this.play();
-});
-assets.player.src = 'player.png';
+assets.player.src = 'newone.jpg';
 assets.onpillar.src = 'onpillar.jpg';
 
 // DOM Elements
@@ -89,13 +195,6 @@ function spawnPipe() {
     state.pipes.push({ x: canvas.width, top: topHeight, passed: false });
 }
 
-function playSound(audio) {
-    if (audio && audio.readyState >= 2) {
-        audio.currentTime = 0;
-        audio.play().catch(() => { }); // Catch silence on first interaction
-    }
-}
-
 function update() {
     if (!state.isPlaying) return;
 
@@ -121,7 +220,7 @@ function update() {
             pipe.passed = true;
             state.score++;
             currentScoreEl.textContent = state.score;
-            playSound(assets.sounds.score);
+            sounds.playScore();
         }
         if (pipe.x + CONFIG.pipeWidth < 0) state.pipes.splice(index, 1);
     });
@@ -145,14 +244,11 @@ function draw() {
 
         // 2. Overlay the "onpillar" image if loaded
         if (assets.onpillar.complete && assets.onpillar.naturalWidth !== 0) {
-            const imgW = CONFIG.pipeWidth * 0.8; // slightly smaller than pillar
+            const imgW = CONFIG.pipeWidth * 0.8;
             const imgH = (assets.onpillar.naturalHeight / assets.onpillar.naturalWidth) * imgW;
             const xPos = pipe.x + (CONFIG.pipeWidth - imgW) / 2;
 
-            // Draw on top pipe (near the gap)
             ctx.drawImage(assets.onpillar, xPos, pipe.top - imgH - 10, imgW, imgH);
-
-            // Draw on bottom pipe (near the gap)
             ctx.drawImage(assets.onpillar, xPos, pipe.top + CONFIG.pipeGap + 10, imgW, imgH);
         }
     });
@@ -173,18 +269,19 @@ function draw() {
 function jump() {
     if (!state.isPlaying) return;
     state.player.vy = CONFIG.jump;
-    playSound(assets.sounds.jump);
+    sounds.play('jump');
 }
 
 function startGame() {
+    sounds.unlock();
     init();
     state.isPlaying = true;
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     scoreBoard.classList.remove('hidden');
 
-    playSound(assets.sounds.background);
-    playSound(assets.sounds.rakesh_master);
+    sounds.startBackground();
+    sounds.play('rakesh_master');
 }
 
 function gameOver() {
@@ -192,13 +289,17 @@ function gameOver() {
     state.isPlaying = false;
 
     // Stop background music
-    if (assets.sounds.background) {
-        assets.sounds.background.pause();
-        assets.sounds.background.currentTime = 0;
+    sounds.stopBackground();
+
+    sounds.play('hit');
+    sounds.play('rakesh_master');
+
+    // Ensure Game Over GIF is loaded
+    const gif = document.getElementById('game-over-gif');
+    if (gif && !gif.src) {
+        gif.src = gif.dataset.src || 'afterout.gif';
     }
 
-    playSound(assets.sounds.hit);
-    playSound(assets.sounds.rakesh_master);
     gameOverScreen.classList.remove('hidden');
     scoreBoard.classList.add('hidden');
     finalScoreEl.textContent = state.score;
@@ -208,6 +309,11 @@ function gameOver() {
     }
     bestScoreEl.textContent = state.bestScore;
 }
+
+// User Interactions
+const unlockAudio = () => sounds.unlock();
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+window.addEventListener('keydown', unlockAudio, { once: true });
 
 window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
@@ -219,5 +325,15 @@ canvas.addEventListener('mousedown', () => state.isPlaying ? jump() : null);
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); state.isPlaying ? jump() : null; }, { passive: false });
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
+
 requestAnimationFrame(draw);
 setInterval(update, 1000 / 60);
+
+// Register Service Worker for offline caching & zero repeat requests
+if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+            console.log('SW registration error:', err);
+        });
+    });
+}
